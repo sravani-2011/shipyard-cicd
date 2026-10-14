@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Live Status — Shipyard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="page-hero container">
+  <span class="eyebrow">Runtime</span>
+  <h1>Live <span class="grad">pod status</span></h1>
+  <p>This data comes from <code>/api/info</code> on whichever pod served your request. It refreshes every 3 seconds — watch the pod name change as Kubernetes load-balances.</p>
+</div>
+
+<section style="padding-top:10px">
+  <div class="container">
+    <div class="status-banner"><span class="pulse" id="pulse"></span><span id="state">Connecting…</span></div>
+    <div class="grid g4" id="cards"></div>
+  </div>
+</section>
+
+<section class="alt">
+  <div class="container grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
+    <div class="card">
+      <h3>Pods that served you</h3>
+      <p style="margin-bottom:14px">Each distinct replica seen in this session.</p>
+      <div id="pods" class="stack" style="justify-content:flex-start"></div>
+    </div>
+    <div class="card">
+      <h3>Request log</h3>
+      <pre class="code log" id="log"></pre>
+    </div>
+  </div>
+</section>
+
+<script src="/js/main.js"></script>
+<script>
+const fields = [
+  ['pod','Pod'],['buildNumber','Jenkins build'],['version','Image tag'],['gitCommit','Git commit'],
+  ['namespace','Namespace'],['node','Node'],['podIP','Pod IP'],['nodeVersion','Node.js'],
+  ['uptimeSeconds','Uptime (s)'],['memoryMB','Memory (MB)'],['requests','Requests (this pod)'],['startedAt','Started at']
+];
+const cards = document.getElementById('cards');
+cards.innerHTML = fields.map(([k,l]) => `<div class="card kv"><div class="k">${l}</div><div class="v" id="f-${k}">—</div></div>`).join('');
+const seen = {}; const log = document.getElementById('log');
+async function tick(){
+  try {
+    const i = await (await fetch('/api/info', {cache:'no-store'})).json();
+    fields.forEach(([k]) => document.getElementById('f-'+k).textContent = i[k]);
+    document.getElementById('pulse').classList.remove('down');
+    document.getElementById('state').textContent = 'Healthy · served by ' + i.pod;
+    seen[i.pod] = (seen[i.pod]||0) + 1;
+    document.getElementById('pods').innerHTML = Object.entries(seen).map(([p,n]) => `<span class="chip"><i>☸️</i>${p} <span class="badge">${n}</span></span>`).join('');
+    log.textContent = `${new Date().toLocaleTimeString()}  200  ${i.pod}\n` + log.textContent.split('\n').slice(0,40).join('\n');
+  } catch(e) {
+    document.getElementById('pulse').classList.add('down');
+    document.getElementById('state').textContent = 'Unreachable';
+  }
+}
+tick(); setInterval(tick, 3000);
+</script>
+</body>
+</html>

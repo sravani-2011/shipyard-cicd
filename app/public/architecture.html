@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Architecture — Shipyard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="page-hero container">
+  <span class="eyebrow">System design</span>
+  <h1>How it all <span class="grad">fits together</span></h1>
+  <p>One EC2 instance hosts Jenkins, the Docker engine and a single-node k3s Kubernetes cluster. Docker Hub stores the images in between.</p>
+</div>
+
+<section style="padding-top:20px">
+  <div class="container">
+    <div class="diagram">
+      <svg viewBox="0 0 1000 440" role="img" aria-label="Architecture diagram">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#4fd1c5"/></marker>
+        </defs>
+        <!-- Developer + GitHub -->
+        <rect x="20" y="60" width="140" height="70" rx="12" fill="#111831" stroke="#26305a"/>
+        <text x="90" y="100" fill="#e7ebff" font-size="15" font-weight="700" text-anchor="middle">Developer</text>
+        <rect x="20" y="250" width="140" height="70" rx="12" fill="#111831" stroke="#26305a"/>
+        <text x="90" y="282" fill="#e7ebff" font-size="15" font-weight="700" text-anchor="middle">GitHub</text>
+        <text x="90" y="302" fill="#9aa4cf" font-size="12" text-anchor="middle">source + Jenkinsfile</text>
+        <line x1="90" y1="130" x2="90" y2="248" stroke="#4fd1c5" stroke-width="2" marker-end="url(#ar)"/>
+        <text x="100" y="195" fill="#9aa4cf" font-size="12">git push</text>
+
+        <!-- AWS EC2 boundary -->
+        <rect x="220" y="20" width="560" height="400" rx="16" fill="none" stroke="#f6ad55" stroke-dasharray="6 6"/>
+        <text x="240" y="48" fill="#f6ad55" font-size="14" font-weight="700">AWS · EC2 (Ubuntu 24.04, t3.medium)</text>
+
+        <!-- Jenkins -->
+        <rect x="250" y="70" width="220" height="110" rx="12" fill="#151d3b" stroke="#63b3ed"/>
+        <text x="360" y="105" fill="#e7ebff" font-size="16" font-weight="700" text-anchor="middle">Jenkins :8080</text>
+        <text x="360" y="128" fill="#9aa4cf" font-size="12" text-anchor="middle">Checkout · Test · Build</text>
+        <text x="360" y="146" fill="#9aa4cf" font-size="12" text-anchor="middle">Push · Deploy · Verify</text>
+        <line x1="160" y1="285" x2="250" y2="140" stroke="#4fd1c5" stroke-width="2" marker-end="url(#ar)"/>
+        <text x="168" y="225" fill="#9aa4cf" font-size="12">webhook / poll</text>
+
+        <!-- Docker engine -->
+        <rect x="520" y="70" width="230" height="110" rx="12" fill="#151d3b" stroke="#63b3ed"/>
+        <text x="635" y="110" fill="#e7ebff" font-size="16" font-weight="700" text-anchor="middle">Docker Engine</text>
+        <text x="635" y="133" fill="#9aa4cf" font-size="12" text-anchor="middle">docker build / push</text>
+        <line x1="470" y1="125" x2="518" y2="125" stroke="#4fd1c5" stroke-width="2" marker-end="url(#ar)"/>
+
+        <!-- k3s cluster -->
+        <rect x="250" y="220" width="500" height="175" rx="12" fill="#151d3b" stroke="#4fd1c5"/>
+        <text x="270" y="247" fill="#4fd1c5" font-size="14" font-weight="700">k3s Kubernetes · namespace shipyard</text>
+        <rect x="270" y="265" width="140" height="56" rx="10" fill="#0b1020" stroke="#26305a"/>
+        <text x="340" y="298" fill="#e7ebff" font-size="13" text-anchor="middle">Pod 1</text>
+        <rect x="430" y="265" width="140" height="56" rx="10" fill="#0b1020" stroke="#26305a"/>
+        <text x="500" y="298" fill="#e7ebff" font-size="13" text-anchor="middle">Pod 2</text>
+        <rect x="590" y="265" width="140" height="56" rx="10" fill="#0b1020" stroke="#26305a"/>
+        <text x="660" y="298" fill="#e7ebff" font-size="13" text-anchor="middle">Pod 3</text>
+        <rect x="270" y="335" width="460" height="44" rx="10" fill="rgba(79,209,197,.1)" stroke="#4fd1c5"/>
+        <text x="500" y="362" fill="#e7ebff" font-size="13" text-anchor="middle">Service shipyard-svc · NodePort 30080 → 3000</text>
+        <line x1="360" y1="180" x2="360" y2="218" stroke="#4fd1c5" stroke-width="2" marker-end="url(#ar)"/>
+        <text x="370" y="204" fill="#9aa4cf" font-size="12">kubectl apply</text>
+
+        <!-- Docker Hub -->
+        <rect x="830" y="70" width="150" height="110" rx="12" fill="#111831" stroke="#26305a"/>
+        <text x="905" y="118" fill="#e7ebff" font-size="15" font-weight="700" text-anchor="middle">Docker Hub</text>
+        <text x="905" y="140" fill="#9aa4cf" font-size="12" text-anchor="middle">image registry</text>
+        <line x1="750" y1="110" x2="828" y2="110" stroke="#4fd1c5" stroke-width="2" marker-end="url(#ar)"/>
+        <path d="M905 180 C905 250 820 290 752 290" fill="none" stroke="#4fd1c5" stroke-width="2" marker-end="url(#ar)"/>
+        <text x="830" y="245" fill="#9aa4cf" font-size="12">image pull</text>
+
+        <!-- Users -->
+        <rect x="830" y="320" width="150" height="70" rx="12" fill="#111831" stroke="#26305a"/>
+        <text x="905" y="360" fill="#e7ebff" font-size="15" font-weight="700" text-anchor="middle">Users</text>
+        <line x1="828" y1="357" x2="732" y2="357" stroke="#4fd1c5" stroke-width="2" marker-end="url(#ar)"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<section class="alt">
+  <div class="container">
+    <div class="section-head"><h2>Components</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Component</th><th>Role</th><th>Port / location</th></tr></thead>
+        <tbody>
+          <tr><td>Jenkins LTS</td><td>Pipeline orchestrator (declarative Jenkinsfile)</td><td>EC2 :8080</td></tr>
+          <tr><td>Docker Engine</td><td>Builds and pushes container images</td><td>/var/run/docker.sock</td></tr>
+          <tr><td>Docker Hub</td><td>Stores versioned images</td><td>&lt;user&gt;/shipyard</td></tr>
+          <tr><td>k3s</td><td>Lightweight, CNCF-certified Kubernetes</td><td>API :6443 (local)</td></tr>
+          <tr><td>Deployment</td><td>3 replicas, rolling update, probes, resource limits</td><td>namespace shipyard</td></tr>
+          <tr><td>Service</td><td>Load-balances traffic across pods</td><td>NodePort :30080</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container grid g3">
+    <div class="card"><div class="icon">🔐</div><h3>Security</h3><p>Container runs as a non-root user; registry credentials live in the Jenkins credential store; the security group exposes only SSH, Jenkins and the app port.</p></div>
+    <div class="card"><div class="icon">🩺</div><h3>Self-healing</h3><p>Liveness and readiness probes on <code>/healthz</code> and <code>/readyz</code> let Kubernetes restart unhealthy pods and hold traffic until pods are ready.</p></div>
+    <div class="card"><div class="icon">📈</div><h3>Scalable</h3><p>Scale with <code>kubectl scale deploy/shipyard --replicas=5</code> — the Service picks up new pods automatically.</p></div>
+  </div>
+</section>
+<script src="/js/main.js"></script>
+</body>
+</html>

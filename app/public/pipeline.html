@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pipeline — Shipyard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="page-hero container">
+  <span class="eyebrow">Jenkinsfile</span>
+  <h1>The CI/CD <span class="grad">pipeline</span></h1>
+  <p>A declarative Jenkins pipeline with seven stages. Select a stage to see what it does and the code behind it.</p>
+</div>
+
+<section style="padding-top:20px">
+  <div class="container stages">
+    <ul class="stage-list" id="stage-list"></ul>
+    <div class="stage-detail" id="stage-detail"></div>
+  </div>
+</section>
+
+<section class="alt">
+  <div class="container">
+    <div class="section-head"><h2>Release strategy</h2><p>How a new version reaches users without downtime.</p></div>
+    <div class="grid g3">
+      <div class="card"><div class="icon">🏷️</div><h3>Immutable tags</h3><p>Every image is tagged <code>&lt;build&gt;-&lt;sha&gt;</code> as well as <code>latest</code>, so any release can be traced back to its commit.</p></div>
+      <div class="card"><div class="icon">🔁</div><h3>Rolling updates</h3><p><code>maxUnavailable: 0</code> and <code>maxSurge: 1</code> keep all three replicas serving while new pods come up.</p></div>
+      <div class="card"><div class="icon">↩️</div><h3>Automatic rollback</h3><p>If <code>kubectl rollout status</code> times out, the pipeline runs <code>kubectl rollout undo</code> and marks the build failed.</p></div>
+    </div>
+  </div>
+</section>
+
+<script src="/js/main.js"></script>
+<script>
+const stages = [
+  { t:'Checkout', d:'Jenkins pulls the latest commit from GitHub and records the short commit SHA used to tag the image.',
+    c:`stage('Checkout') {
+  steps {
+    checkout scm
+    script { env.GIT_SHORT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim() }
+  }
+}` },
+  { t:'Install & Test', d:'Dependencies are installed and the test suite runs inside a throwaway Node.js container, so the Jenkins host stays clean.',
+    c:`stage('Install & Test') {
+  steps {
+    sh 'docker run --rm -v "$PWD/app":/app -w /app node:20-alpine sh -c "npm install && npm test"'
+  }
+}` },
+  { t:'Docker Build', d:'The multi-stage Dockerfile builds a slim production image tagged with the build number and commit SHA.',
+    c:`stage('Docker Build') {
+  steps {
+    sh """docker build \\
+      --build-arg APP_VERSION=\${IMAGE_TAG} \\
+      -t \${IMAGE}:\${IMAGE_TAG} -t \${IMAGE}:latest ."""
+  }
+}` },
+  { t:'Push to Docker Hub', d:'Credentials are injected from the Jenkins credential store (ID dockerhub-creds) and never written to disk in plain text.',
+    c:`stage('Push Image') {
+  steps {
+    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds',
+        usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
+      sh 'echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin'
+      sh 'docker push \${IMAGE}:\${IMAGE_TAG} && docker push \${IMAGE}:latest'
+    }
+  }
+}` },
+  { t:'Deploy to Kubernetes', d:'Manifests are applied and the deployment image is updated to the new tag, triggering a rolling update.',
+    c:`stage('Deploy to Kubernetes') {
+  steps {
+    sh 'kubectl apply -f k8s/namespace.yaml -f k8s/service.yaml'
+    sh "sed 's|IMAGE_PLACEHOLDER|\${IMAGE}:\${IMAGE_TAG}|' k8s/deployment.yaml | kubectl apply -f -"
+  }
+}` },
+  { t:'Verify Rollout', d:'Jenkins waits for all replicas to become ready. On failure it rolls back to the previous ReplicaSet.',
+    c:`stage('Verify Rollout') {
+  steps {
+    script {
+      try { sh 'kubectl -n shipyard rollout status deploy/shipyard --timeout=180s' }
+      catch (e) { sh 'kubectl -n shipyard rollout undo deploy/shipyard'; throw e }
+    }
+  }
+}` },
+  { t:'Smoke Test', d:'A final HTTP check hits the NodePort service and confirms the new build number is being served.',
+    c:`stage('Smoke Test') {
+  steps {
+    sh 'curl -fsS http://localhost:30080/healthz'
+    sh 'curl -fsS http://localhost:30080/api/info | grep "\${BUILD_NUMBER}"'
+  }
+}` },
+];
+const list = document.getElementById('stage-list'), det = document.getElementById('stage-detail');
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+function show(i){
+  [...list.querySelectorAll('.stage-btn')].forEach((b,j)=>b.classList.toggle('active', i===j));
+  const s = stages[i];
+  det.innerHTML = `<span class="eyebrow">Stage ${i+1} of ${stages.length}</span><h3>${s.t}</h3><p>${s.d}</p><pre class="code">${esc(s.c)}</pre>`;
+}
+stages.forEach((s,i)=>{ const li=document.createElement('li');
+  li.innerHTML=`<button class="stage-btn"><span class="n">${i+1}</span>${s.t}</button>`;
+  li.firstChild.onclick=()=>show(i); list.append(li); });
+show(0);
+</script>
+</body>
+</html>

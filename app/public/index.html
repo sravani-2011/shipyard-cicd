@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shipyard — CI/CD to Kubernetes with Jenkins</title>
+<meta name="description" content="A Dockerized web app continuously delivered to Kubernetes by a Jenkins pipeline on AWS.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<section class="hero">
+  <div class="container">
+    <div>
+      <span class="eyebrow">DevOps Project · CI/CD</span>
+      <h1>From <span class="grad">git push</span> to a live Kubernetes deployment — automatically.</h1>
+      <p class="lead">Shipyard is a Dockerized Node.js application delivered by a Jenkins pipeline: every commit is tested, packaged into an image, pushed to Docker Hub and rolled out to a Kubernetes cluster on AWS with zero downtime.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-primary" href="/pipeline">Explore the pipeline →</a>
+        <a class="btn btn-ghost" href="/status">See live pod status</a>
+      </div>
+    </div>
+    <div class="terminal reveal">
+      <div class="terminal-bar"><span></span><span></span><span></span></div>
+      <pre id="term"></pre>
+    </div>
+  </div>
+</section>
+
+<section class="alt">
+  <div class="container grid g4">
+    <div class="stat reveal"><div class="num" data-count="7">0</div><div class="lbl">Pipeline stages</div></div>
+    <div class="stat reveal"><div class="num" data-count="3">0</div><div class="lbl">Kubernetes replicas</div></div>
+    <div class="stat reveal"><div class="num" data-count="0" data-suffix="s">0</div><div class="lbl">Downtime per release</div></div>
+    <div class="stat reveal"><div class="num" data-count="100" data-suffix="%">0</div><div class="lbl">Automated from commit</div></div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-head reveal">
+      <h2>What this project demonstrates</h2>
+      <p>A complete, reproducible delivery workflow built with industry-standard tools.</p>
+    </div>
+    <div class="grid g3">
+      <div class="card reveal"><div class="icon">⚙️</div><h3>Continuous Integration</h3><p>Jenkins checks out the repository on every push, installs dependencies and runs the automated test suite before anything is built.</p></div>
+      <div class="card reveal"><div class="icon">🐳</div><h3>Containerization</h3><p>A multi-stage Dockerfile produces a small, non-root production image tagged with the Jenkins build number and commit SHA.</p></div>
+      <div class="card reveal"><div class="icon">📦</div><h3>Image Registry</h3><p>Images are pushed to Docker Hub using Jenkins-managed credentials, so secrets never live in the repository.</p></div>
+      <div class="card reveal"><div class="icon">☸️</div><h3>Kubernetes Deployment</h3><p>The pipeline applies manifests and performs a rolling update across three replicas with readiness and liveness probes.</p></div>
+      <div class="card reveal"><div class="icon">✅</div><h3>Automated Verification</h3><p>Jenkins waits for the rollout to complete and smoke-tests the live service. A failed rollout is rolled back automatically.</p></div>
+      <div class="card reveal"><div class="icon">☁️</div><h3>Runs on AWS</h3><p>Jenkins, Docker and a lightweight k3s Kubernetes cluster run on an Amazon EC2 instance, provisioned by a single bootstrap script.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="alt">
+  <div class="container">
+    <div class="section-head reveal"><h2>Tech stack</h2><p>Each tool has one clear job in the delivery chain.</p></div>
+    <div class="stack reveal">
+      <span class="chip"><i>🧩</i>GitHub</span><span class="chip"><i>🤵</i>Jenkins</span><span class="chip"><i>🟩</i>Node.js / Express</span>
+      <span class="chip"><i>🐳</i>Docker</span><span class="chip"><i>📦</i>Docker Hub</span><span class="chip"><i>☸️</i>Kubernetes (k3s)</span>
+      <span class="chip"><i>☁️</i>AWS EC2</span><span class="chip"><i>🐧</i>Ubuntu 24.04</span>
+    </div>
+    <div class="flow reveal" style="margin-top:40px">
+      <span class="step">Developer</span><span class="arrow">→</span><span class="step">GitHub</span><span class="arrow">→</span>
+      <span class="step">Jenkins</span><span class="arrow">→</span><span class="step">Docker Hub</span><span class="arrow">→</span><span class="step">Kubernetes</span><span class="arrow">→</span><span class="step">Users</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="cta reveal">
+      <h2>This page is served by a Kubernetes pod.</h2>
+      <p>Refresh the Live Status page to watch the load balancer route you to different replicas.</p>
+      <a class="btn btn-primary" href="/status">Open Live Status</a>
+    </div>
+  </div>
+</section>
+
+<script src="/js/main.js"></script>
+<script>
+const lines = [
+  ['t-dim','$ git push origin main'],
+  ['','[Jenkins] Started by GitHub push'],
+  ['t-ok','✔ Checkout              2s'],
+  ['t-ok','✔ Install & Test        14s   (6 passed)'],
+  ['t-ok','✔ Docker Build          38s'],
+  ['t-ok','✔ Push to Docker Hub    11s'],
+  ['t-acc','⟳ Deploy to Kubernetes'],
+  ['','  deployment.apps/shipyard image updated'],
+  ['','  Waiting for rollout: 3 of 3 updated replicas…'],
+  ['t-ok','✔ Rollout complete'],
+  ['t-ok','✔ Smoke test            HTTP 200'],
+  ['t-warn','Finished: SUCCESS']
+];
+const term = document.getElementById('term'); let i = 0;
+(function type(){ if(i>=lines.length){ setTimeout(()=>{term.innerHTML='';i=0;type();},4000); return; }
+  const [c,t]=lines[i++]; term.innerHTML += `<span class="${c}">${t}</span>\n`; setTimeout(type, 420); })();
+</script>
+</body>
+</html>

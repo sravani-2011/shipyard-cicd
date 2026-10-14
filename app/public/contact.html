@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contact — Shipyard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="page-hero container">
+  <span class="eyebrow">Get in touch</span>
+  <h1>Questions about the <span class="grad">project?</span></h1>
+  <p>Send a message — it's handled by the app's <code>/api/contact</code> endpoint running in Kubernetes.</p>
+</div>
+<section style="padding-top:10px">
+  <div class="container">
+    <form class="form card" id="form">
+      <div><label for="name">Name</label><input id="name" name="name" required></div>
+      <div><label for="email">Email</label><input id="email" name="email" type="email" required></div>
+      <div><label for="message">Message</label><textarea id="message" name="message" rows="5" required></textarea></div>
+      <button class="btn btn-primary" type="submit">Send message</button>
+      <div class="alert" id="alert"></div>
+    </form>
+  </div>
+</section>
+<script src="/js/main.js"></script>
+<script>
+document.getElementById('form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const a = document.getElementById('alert');
+  const body = Object.fromEntries(new FormData(e.target));
+  try {
+    const r = await fetch('/api/contact', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(body)});
+    const j = await r.json();
+    a.className = 'alert ' + (j.ok ? 'ok' : 'err');
+    a.textContent = j.ok ? `Thanks! Your message was received by pod ${j.receivedBy}.` : j.error;
+    if (j.ok) e.target.reset();
+  } catch { a.className = 'alert err'; a.textContent = 'Could not reach the server.'; }
+});
+</script>
+</body>
+</html>
